@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 数据集 (体积大, 不入库)
+dataset/
+*.wav
+*.flac
+*.npy
+*.tar.gz
+*.tgz
+*.zip
+
+# 预训练模型与实验产物
+Model_File/
+synaspot/Model_File/
+checkpoints/
+exp*/
+*.pt
+*.pth
+*.ckpt
+
+# 日志与缓存
+*.log
+.cache/
+tensorboard/
+runs/
+
+# 关键词注册向量 (运行时生成)
+keyword_store/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store

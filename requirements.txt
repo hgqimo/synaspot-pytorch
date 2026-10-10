@@ -1,0 +1,22 @@
+# SYNASPOT 依赖
+# 实测通过版本: torch 2.13.0+cu126 / torchaudio 2.11.0 / numpy 2.3.5
+#               scikit-learn 1.9.0 / soundfile 0.14.0
+torch>=2.0
+torchaudio>=2.0
+numpy
+scikit-learn
+soundfile
+
+# Chinese HuBERT: 仅 SSL 主干特征提取与推理需要 (方案 A)
+transformers
+
+# 拼音标注: 仅数据准备阶段需要
+pypinyin
+
+# 字级时间戳对齐 (data_prep/03_funasr_align.py): 仅数据准备阶段需要
+funasr
+
+# 关键词打断服务 (kws_server.py)
+fastapi
+uvicorn
+python-multipart

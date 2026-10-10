@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNASPOT 关键词打断演示</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --card: #1a2233;
+    --card2: #222c42;
+    --border: #2e3a55;
+    --text: #e6ecf7;
+    --muted: #8b98b5;
+    --accent: #4f8cff;
+    --accent2: #6ee7a8;
+    --danger: #ff5d6c;
+    --gold: #ffc94d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(1200px 600px at 15% -10%, #1b2a4a 0%, var(--bg) 55%);
+    color: var(--text); min-height: 100vh; padding: 24px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: 1px; }
+  header p { color: var(--muted); margin: 0; font-size: 14px; }
+  header .badge {
+    display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 999px;
+    background: rgba(111,231,168,.12); color: var(--accent2); font-size: 12px; border: 1px solid rgba(111,231,168,.3);
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  .card h2 { margin: 0 0 16px; font-size: 17px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .grow { flex: 1 1 200px; }
+  input[type=text], input[type=number], input[type=file] {
+    width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card2); color: var(--text); font-size: 14px; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  label.radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; margin-right: 16px; font-size: 14px; }
+  button {
+    padding: 11px 18px; border-radius: 10px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 600; transition: .15s; white-space: nowrap;
+  }
+  button:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-fill { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+  .btn-fill:hover { border-color: var(--accent); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-listening { background: var(--danger); color: #fff; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .hidden { display: none !important; }
+
+  /* 关键词列表 */
+  .kw-item {
+    display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 12px;
+    background: var(--card2); border: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .kw-info { flex: 1; min-width: 0; }
+  .kw-name { font-size: 16px; font-weight: 600; }
+  .kw-meta { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .tag { padding: 1px 8px; border-radius: 6px; background: rgba(79,140,255,.15); color: #9dbbff; }
+  .tag.text { background: rgba(111,231,168,.14); color: var(--accent2); }
+  .tag.audio { background: rgba(255,201,77,.14); color: var(--gold); }
+
+  /* 监听面板 */
+  .meter { height: 12px; border-radius: 6px; background: #0d1424; overflow: hidden; margin-top: 10px; }
+  .meter > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .1s; border-radius: 6px; }
+  .score-line { display: flex; justify-content: space-between; font-size: 13px; margin-top: 6px; color: var(--muted); }
+  .score-val { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  /* 打断横幅 */
+  #banner {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.6);
+    background: linear-gradient(135deg, #ff5d6c, #ff8a5c); color: #fff;
+    padding: 28px 44px; border-radius: 22px; font-size: 30px; font-weight: 800;
+    box-shadow: 0 20px 80px rgba(255,93,108,.5); opacity: 0; pointer-events: none;
+    transition: .18s cubic-bezier(.34,1.56,.64,1); z-index: 100;
+  }
+  #banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #banner small { display: block; font-size: 14px; font-weight: 400; margin-top: 8px; opacity: .9; }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); display: inline-block; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  #toast {
+    position: fixed; right: 20px; bottom: 20px; background: var(--card2);
+    border: 1px solid var(--accent); color: var(--text); padding: 12px 16px;
+    border-radius: 10px; font-size: 13px; line-height: 1.5; max-width: 360px;
+    opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none; z-index: 200;
+  }
+  #toast.show { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>SYNASPOT 流式关键词打断</h1>
+    <p>注册关键词向量（离线），打开麦克风后说话命中关键词即触发打断</p>
+    <span class="badge">替代常开 ASR · 纯向量匹配 · 低延迟</span>
+  </header>
+
+  <!-- 注册卡片 -->
+  <section class="card">
+    <h2>① 注册关键词</h2>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="grow">
+        <input type="text" id="name" placeholder="关键词名称（如：打断 / 停一下）">
+      </div>
+      <div class="grow">
+        <input type="number" id="threshold" step="0.05" min="0.1" max="0.95" placeholder="阈值（留空用默认）">
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:12px;">
+      <label class="radio"><input type="radio" name="mode" value="text" checked> 文本注册</label>
+      <label class="radio"><input type="radio" name="mode" value="audio"> 音频注册</label>
+    </div>
+    <div id="textArea" class="row" style="margin-bottom:12px;">
+      <div class="grow"><input type="text" id="textInput" placeholder="文本关键词，如：停一下 / 别说了"></div>
+    </div>
+    <div id="audioArea" class="row hidden" style="margin-bottom:12px;">
+      <button class="btn-fill" id="btnRecord">🎙 录音</button>
+      <button class="btn-fill" id="btnUpload" onclick="document.getElementById('audioFile').click()">📁 上传音频</button>
+      <input type="file" id="audioFile" accept="audio/*,.wav" class="hidden">
+      <span id="audioStatus" class="hint" style="margin:0;">未选择音频</span>
+    </div>
+    <div class="row">
+      <button class="btn-primary" id="btnRegister">注册关键词</button>
+    </div>
+    <div class="hint" id="regHint"></div>
+  </section>
+
+  <!-- 关键词列表 -->
+  <section class="card">
+    <h2>② 已注册关键词</h2>
+    <div id="kwList"><div class="hint">加载中…</div></div>
+  </section>
+
+  <!-- 监听面板 -->
+  <section class="card hidden" id="listenPanel">
+    <h2>③ 实时监听 <span class="rec-dot" id="recDot" style="margin-left:6px;"></span></h2>
+    <div class="kw-info">
+      <div class="kw-name" id="listeningName">—</div>
+      <div class="kw-meta">阈值 <span id="listenThrText">—</span>（可拖动调整）</div>
+    </div>
+    <div class="meter"><div id="meterBar"></div></div>
+    <div class="score-line">
+      <span>得分阈值线 <span id="thresholdLine">0.50</span></span>
+      <span>当前得分 <span class="score-val" id="scoreVal">0.000</span></span>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <input type="range" id="thrSlider" min="0.1" max="0.9" step="0.01" class="grow">
+      <button class="btn-listening" id="btnStop">停止监听</button>
+    </div>
+  </section>
+</div>
+
+<div id="banner">🔊 检测到「<span id="bannerKw"></span>」<small>Barge-in 触发</small></div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const API = '/api/keywords';
+let ws = null;
+let audioCtx = null, scriptNode = null, micStream = null;
+let enrolledAudioBlob = null;   // 音频注册暂存
+let recorderCtx = null, recorderNode = null, recorderChunks = [];
+
+// ---------- 关键词列表 ----------
+async function loadKeywords() {
+  const res = await fetch(API);
+  const data = await res.json();
+  const list = $('kwList');
+  if (!data.keywords || !data.keywords.length) {
+    list.innerHTML = '<div class="hint">暂无关键词，请先注册</div>'; return;
+  }
+  list.innerHTML = data.keywords.map(k => `
+    <div class="kw-item">
+      <div class="kw-info">
+        <div class="kw-name">${escapeHtml(k.name)}</div>
+        <div class="kw-meta">
+          <span class="tag">id: ${k.id}</span>
+          ${k.modalities ? k.modalities.map(m => m==='T' ? '<span class="tag text">文本</span>' : m==='A' ? '<span class="tag audio">音频</span>' : '').join('') : ''}
+          ${k.text ? '<span class="tag text">'+escapeHtml(k.text)+'</span>' : ''}
+          ${k.audio_name ? '<span class="tag audio">'+escapeHtml(k.audio_name)+'</span>' : ''}
+          <span>阈值 ${k.threshold}</span>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="startListen('${k.id}','${escapeHtml(k.name)}',${k.threshold})">监听</button>
+      <button class="btn-danger" onclick="delKeyword('${k.id}')">删除</button>
+    </div>`).join('');
+}
+
+async function delKeyword(id) {
+  if (!confirm('确认删除该关键词？')) return;
+  await fetch(`${API}/${id}`, { method: 'DELETE' });
+  loadKeywords();
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- 注册 ----------
+document.querySelectorAll('input[name=mode]').forEach(r => r.onchange = () => {
+  $('textArea').classList.toggle('hidden', r.value !== 'text');
+  $('audioArea').classList.toggle('hidden', r.value !== 'audio');
+});
+
+function encodeWAV(samples, sampleRate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const writeStr = (o, s) => { for (let i=0;i<s.length;i++) v.setUint8(o+i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); v.setUint32(4, 36 + samples.length*2, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate*2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  writeStr(36, 'data'); v.setUint32(40, samples.length*2, true);
+  let o = 44; for (let i=0;i<samples.length;i++,o+=2){ let s = Math.max(-1,Math.min(1,samples[i])); v.setInt16(o, s<0?s*0x8000:s*0x7fff, true); }
+  return new Blob([buf], {type:'audio/wav'});
+}
+
+async function startRecord() {
+  if (recorderCtx) return stopRecord();
+  recorderCtx = new AudioContext({sampleRate:16000});
+  const stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, sampleRate:16000}});
+  const src = recorderCtx.createMediaStreamSource(stream);
+  recorderNode = recorderCtx.createScriptProcessor(4096,1,1);
+  recorderChunks = [];
+  recorderNode.onaudioprocess = e => {
+    recorderChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  };
+  src.connect(recorderNode); recorderNode.connect(recorderCtx.destination);
+  $('btnRecord').textContent = '⏹ 停止录音';
+  $('audioStatus').textContent = '录音中…请说出关键词';
+}
+function stopRecord() {
+  recorderNode?.disconnect(); recorderCtx?.close(); recorderCtx = null;
+  const merged = concatFloat(recorderChunks, 16000);
+  enrolledAudioBlob = encodeWAV(merged, 16000);
+  $('btnRecord').textContent = '🎙 录音';
+  $('audioStatus').textContent = `已录音 ${(merged.length/16000).toFixed(1)}s，可注册`;
+}
+function concatFloat(chunks, sr) {
+  let n = 0; chunks.forEach(c => n += c.length);
+  const out = new Float32Array(n); let o = 0;
+  chunks.forEach(c => { out.set(c, o); o += c.length; });
+  return out;
+}
+$('btnRecord').onclick = () => startRecord().then(()=>{},e=>{ $('audioStatus').textContent='麦克风错误: '+e.message; });
+$('audioFile').onchange = e => {
+  enrolledAudioBlob = e.target.files[0];
+  $('audioStatus').textContent = '已选择 ' + e.target.files[0].name;
+};
+
+$('btnRegister').onclick = async () => {
+  const name = $('name').value.trim();
+  if (!name) return hint('请填写关键词名称', true);
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  const fd = new FormData();
+  fd.append('name', name);
+  if ($('threshold').value) fd.append('threshold', $('threshold').value);
+  if (mode === 'text') {
+    const t = $('textInput').value.trim();
+    if (!t) return hint('请填写文本关键词', true);
+    fd.append('text', t);
+  } else {
+    if (!enrolledAudioBlob) return hint('请先录音或上传音频', true);
+    fd.append('audio', enrolledAudioBlob, 'enroll.wav');
+  }
+  hint('注册中…', false);
+  const res = await fetch(API, { method:'POST', body: fd });
+  const json = await res.json();
+  if (!res.ok) return hint('注册失败: ' + (json.detail||'未知错误'), true);
+  hint('✅ 注册成功 id=' + json.id, false);
+  $('name').value = ''; $('textInput').value = ''; enrolledAudioBlob = null; $('audioStatus').textContent='未选择音频';
+  loadKeywords();
+};
+function hint(msg, err) { const h = $('regHint'); h.textContent = msg; h.style.color = err ? 'var(--danger)' : 'var(--accent2)'; }
+
+// ---------- 监听 + 打断 ----------
+async function startListen(id, name, thr) {
+  if (ws) stopListen(false);
+  $('kwList').closest('.card').classList.add('hidden');
+  $('listenPanel').classList.remove('hidden');
+  $('listeningName').textContent = name;
+  $('thrSlider').value = thr; $('thresholdLine').textContent = Number(thr).toFixed(2);
+  $('listenThrText').textContent = thr;
+
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => ws.send(JSON.stringify({type:'start', keyword:id, threshold:thr}));
+  ws.onmessage = (ev) => {
+    const m = JSON.parse(ev.data);
+    if (m.type === 'score') {
+      $('scoreVal').textContent = m.score.toFixed(3);
+      const pct = Math.max(0, Math.min(100, m.score / Math.max(thr*1.5, 0.001) * 100));
+      $('meterBar').style.width = pct + '%';
+    } else if (m.type === 'interrupt') {
+      showBanner(m.name, m.score);
+    } else if (m.type === 'saved') {
+      showToast(`已保存监听音频: ${m.name}（${m.seconds}s）`);
+    } else if (m.type === 'error') {
+      console.warn(m.message);
+    }
+  };
+  ws.onclose = () => { stopListen(false); };
+
+  micStream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, sampleRate:16000}});
+  audioCtx = new AudioContext({sampleRate:16000});
+  const actualSr = audioCtx.sampleRate;
+  const src = audioCtx.createMediaStreamSource(micStream);
+  scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+  scriptNode.onaudioprocess = (e) => {
+    if (!ws || ws.readyState !== 1) return;
+    let data = e.inputBuffer.getChannelData(0);
+    if (actualSr !== 16000) data = resample(data, actualSr, 16000);
+    const pcm = floatTo16(data);
+    ws.send(pcm.buffer);
+  };
+  src.connect(scriptNode); scriptNode.connect(audioCtx.destination);
+}
+$('btnStop').onclick = () => stopListen(true);
+$('thrSlider').oninput = (e) => {
+  const v = Number(e.target.value);
+  $('thresholdLine').textContent = v.toFixed(2); $('listenThrText').textContent = v;
+  if (ws && ws.readyState===1) ws.send(JSON.stringify({type:'threshold', value:v}));
+};
+function stopListen(showList) {
+  try { scriptNode?.disconnect(); } catch(e){}
+  try { audioCtx?.close(); } catch(e){}
+  if (micStream) micStream.getTracks().forEach(t=>t.stop());
+  if (ws) { try{ws.close();}catch(e){} ws = null; }
+  scriptNode = null; audioCtx = null; micStream = null;
+  $('listenPanel').classList.add('hidden');
+  if (showList !== false) $('kwList').closest('.card').classList.remove('hidden');
+  loadKeywords();
+}
+function floatTo16(f) {
+  const o = new Int16Array(f.length);
+  for (let i=0;i<f.length;i++){ let s=Math.max(-1,Math.min(1,f[i])); o[i]=s<0?s*0x8000:s*0x7fff; }
+  return o;
+}
+function resample(input, from, to) {
+  if (from === to) return input;
+  const ratio = from/to;
+  const out = new Float32Array(Math.round(input.length/ratio));
+  for (let i=0;i<out.length;i++){ const idx = i*ratio; const i0 = Math.floor(idx); const i1 = Math.min(i0+1, input.length-1); const f = idx-i0; out[i]=input[i0]*(1-f)+input[i1]*f; }
+  return out;
+}
+let toastTimer = null;
+function showToast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+let bannerTimer = null;
+function showBanner(name, score) {
+  $('bannerKw').textContent = name + '（' + score.toFixed(3) + '）';
+  $('banner').classList.add('show');
+  beep();
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(()=> $('banner').classList.remove('show'), 2200);
+}
+function beep() {
+  try { const c = new AudioContext(); const o = c.createOscillator(); const g = c.createGain();
+    o.frequency.value = 880; g.gain.value = 0.3; o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + 0.25); o.onended = ()=>c.close(); } catch(e){}
+}
+
+loadKeywords();
+</script>
+</body>
+</html>
